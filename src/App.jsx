@@ -178,13 +178,23 @@ export default function App() {
         await signInAnonymously(auth);
       } catch (error) {
         console.error("Auth failed", error);
+        setLoading(false);
       }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
     });
-    return () => unsubscribe();
+
+    // 超時處理：3秒後強制顯示畫面
+    const timeout = setTimeout(() => {
+      setLoading(false);
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
 
   // Data Sync
