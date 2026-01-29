@@ -78,7 +78,7 @@ const SpeedLines = () => (
 );
 
 const MangaPhotoPanel = () => {
-  const defaultSrc = "https://drive.google.com/uc?export=view&id=1RsDIMEJBnhQZ9Z-3OPr8aT7vTyGJwuRZ";
+  const defaultSrc = "/hero.jpg";
   const [photoSrc, setPhotoSrc] = useState(defaultSrc);
   const [hasError, setHasError] = useState(false);
   const fileInputRef = useRef(null);
@@ -116,7 +116,7 @@ const MangaPhotoPanel = () => {
                 src={photoSrc}
                 alt="Manga Portrait"
                 referrerPolicy="no-referrer"
-                className="w-full h-full object-cover filter grayscale contrast-125 brightness-110"
+                className="w-full h-full object-cover"
                 onError={() => setHasError(true)}
               />
             ) : (
