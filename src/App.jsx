@@ -178,18 +178,25 @@ export default function App() {
         await signInAnonymously(auth);
       } catch (error) {
         console.error("Auth failed", error);
+        alert("登入失敗，請檢查網路連線後重新整理頁面");
         setLoading(false);
       }
     };
     initAuth();
     const unsubscribe = onAuthStateChanged(auth, (u) => {
       setUser(u);
+      if (u) {
+        setLoading(false); // 登入成功才結束 loading
+      }
     });
 
-    // 超時處理：3秒後強制顯示畫面
+    // 超時處理：10秒後強制顯示畫面（延長等待時間）
     const timeout = setTimeout(() => {
+      if (!user) {
+        console.error("Auth timeout - user still null after 10 seconds");
+      }
       setLoading(false);
-    }, 3000);
+    }, 10000);
 
     return () => {
       unsubscribe();
@@ -235,7 +242,19 @@ export default function App() {
   };
 
   const saveAvailability = async () => {
-    if (!user || !selectedName) return;
+    if (!user) {
+      alert("尚未登入，請重新整理頁面後再試");
+      console.error("Save failed: user is null");
+      return;
+    }
+    if (!selectedName) {
+      alert("請先選擇您的名字");
+      return;
+    }
+    if (myDates.size === 0) {
+      alert("請至少選擇一個日期");
+      return;
+    }
     const userDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'party_rsvp_115', selectedName);
     try {
       await setDoc(userDocRef, {
@@ -247,7 +266,7 @@ export default function App() {
       alert(`${selectedName} 的時間已儲存！`);
     } catch (e) {
       console.error("Save failed", e);
-      alert("儲存失敗，請稍後再試");
+      alert("儲存失敗：" + e.message);
     }
   };
 
