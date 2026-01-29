@@ -525,7 +525,7 @@ export default function App() {
               <Utensils size={14} /> 好市多蝦沙拉
             </span>
             <span className="bg-black/20 px-2 py-1 rounded flex items-center gap-1 border border-white/30">
-              <Beer size={14} /> 啤酒無限
+              <Beer size={14} /> 啤酒供應
             </span>
             <span className="bg-black/20 px-2 py-1 rounded flex items-center gap-1 border border-white/30">
               外送飲料
