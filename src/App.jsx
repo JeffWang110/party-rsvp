@@ -365,7 +365,14 @@ export default function App() {
               <Users size={16} /> 查看統計
             </button>
             <button
-              onClick={saveAvailability}
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                window.alert("按鈕已點擊！");
+                console.log("Button clicked!", { user, selectedName, myDates: Array.from(myDates) });
+                saveAvailability();
+              }}
+              style={{ cursor: 'pointer', position: 'relative', zIndex: 9999 }}
               className="bg-yellow-400 text-black border-2 border-black hover:bg-yellow-300 font-bold px-4 py-1.5 rounded text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
             >
               儲存我的時間
