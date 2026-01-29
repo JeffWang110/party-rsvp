@@ -27,20 +27,20 @@ import {
 } from 'lucide-react';
 
 // --- Firebase Configuration & Initialization ---
-// 直接使用固定值，避免環境變數問題
+// 使用環境變數，加上 trim() 去除可能的換行符號
 const firebaseConfig = {
-  apiKey: "AIzaSyCHpym8hch-ItTEMhRdeAMkvb2qClEldiA",
-  authDomain: "party-today-18738.firebaseapp.com",
-  projectId: "party-today-18738",
-  storageBucket: "party-today-18738.firebasestorage.app",
-  messagingSenderId: "561672972974",
-  appId: "1:561672972974:web:ce616b5fb91cbd46591b3f"
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY || '').trim(),
+  authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '').trim(),
+  projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID || '').trim(),
+  storageBucket: (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '').trim(),
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '').trim(),
+  appId: (import.meta.env.VITE_FIREBASE_APP_ID || '').trim()
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = 'party-rsvp-app';
+const appId = (import.meta.env.VITE_APP_ID || 'party-rsvp-app').trim();
 
 // --- Constants & Data ---
 const USERS_LIST = [
