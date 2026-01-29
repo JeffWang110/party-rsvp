@@ -27,19 +27,20 @@ import {
 } from 'lucide-react';
 
 // --- Firebase Configuration & Initialization ---
+// 直接使用固定值，避免環境變數問題
 const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: import.meta.env.VITE_FIREBASE_APP_ID
+  apiKey: "AIzaSyCHpym8hch-ItTEMhRdeAMkvb2qClEldiA",
+  authDomain: "party-today-18738.firebaseapp.com",
+  projectId: "party-today-18738",
+  storageBucket: "party-today-18738.firebasestorage.app",
+  messagingSenderId: "561672972974",
+  appId: "1:561672972974:web:ce616b5fb91cbd46591b3f"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
-const appId = import.meta.env.VITE_APP_ID || 'party-rsvp-app';
+const appId = 'party-rsvp-app';
 
 // --- Constants & Data ---
 const USERS_LIST = [
@@ -366,13 +367,7 @@ export default function App() {
             </button>
             <button
               type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                window.alert("按鈕已點擊！");
-                console.log("Button clicked!", { user, selectedName, myDates: Array.from(myDates) });
-                saveAvailability();
-              }}
-              style={{ cursor: 'pointer', position: 'relative', zIndex: 9999 }}
+              onClick={saveAvailability}
               className="bg-yellow-400 text-black border-2 border-black hover:bg-yellow-300 font-bold px-4 py-1.5 rounded text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] active:translate-y-[2px] active:shadow-none transition-all"
             >
               儲存我的時間
