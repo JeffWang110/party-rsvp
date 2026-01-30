@@ -1,0 +1,29 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Party RSVP 資料規則
+    // 路徑: /artifacts/{appId}/public/data/party_rsvp_115/{userName}
+    match /artifacts/{appId}/public/data/party_rsvp_115/{userName} {
+
+      // 允許任何人讀取（公開的時間調查表）
+      allow read: if true;
+
+      // 寫入規則：
+      // 1. 必須已登入（匿名登入也算）
+      // 2. 只能寫入有效的資料格式
+      allow write: if request.auth != null
+        && request.resource.data.keys().hasAll(['name', 'dates', 'uid', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.dates is list
+        && request.resource.data.uid is string;
+    }
+
+    // 封鎖所有其他路徑
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
