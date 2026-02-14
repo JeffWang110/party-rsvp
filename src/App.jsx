@@ -23,7 +23,11 @@ import {
   Flame,
   MessageCircle,
   Camera,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Copy,
+  ShoppingCart,
+  ArrowLeft,
+  Calendar
 } from 'lucide-react';
 
 // --- Firebase Configuration & Initialization ---
@@ -171,6 +175,8 @@ export default function App() {
   const [myDates, setMyDates] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('login');
+  const [foodData, setFoodData] = useState({});
+  const [copied, setCopied] = useState(false);
 
   // Auth
   useEffect(() => {
@@ -205,7 +211,7 @@ export default function App() {
     };
   }, []);
 
-  // Data Sync
+  // Data Sync - RSVP
   useEffect(() => {
     if (!user) return;
     const rsvpRef = collection(db, 'artifacts', appId, 'public', 'data', 'party_rsvp_115');
@@ -221,6 +227,25 @@ export default function App() {
       (error) => {
         console.error("Error fetching data:", error);
         setLoading(false);
+      }
+    );
+    return () => unsubscribe();
+  }, [user]);
+
+  // Data Sync - Food Items
+  useEffect(() => {
+    if (!user) return;
+    const foodRef = collection(db, 'artifacts', appId, 'public', 'data', 'party_food_items');
+    const unsubscribe = onSnapshot(foodRef,
+      (snapshot) => {
+        const data = {};
+        snapshot.docs.forEach(doc => {
+          data[doc.id] = doc.data();
+        });
+        setFoodData(data);
+      },
+      (error) => {
+        console.error("Error fetching food data:", error);
       }
     );
     return () => unsubscribe();
@@ -313,6 +338,47 @@ export default function App() {
     document.body.removeChild(link);
   };
 
+  // Food item functions
+  const saveFoodItem = async (slotId, name, item) => {
+    if (!user) return;
+    const foodDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'party_food_items', `slot_${slotId}`);
+    try {
+      await setDoc(foodDocRef, {
+        slotId,
+        name: name.trim(),
+        item: item.trim(),
+        updatedAt: serverTimestamp(),
+        uid: user.uid
+      }, { merge: true });
+    } catch (e) {
+      console.error("Save food item failed", e);
+    }
+  };
+
+  const copyFoodList = () => {
+    const slots = Array.from({ length: 10 }, (_, i) => {
+      const slotData = foodData[`slot_${i + 1}`];
+      return {
+        id: i + 1,
+        name: slotData?.name || '',
+        item: slotData?.item || ''
+      };
+    });
+    const filled = slots.filter(s => s.name.trim() || s.item.trim());
+    let text = '💥 入厝大作戰 認領清單 💥\n\n';
+    if (filled.length === 0) {
+      text += '還沒有人報名喔！快來卡位！';
+    } else {
+      text += filled.map(s => `[${s.id}] ${s.name || '神秘人'} 👉 帶：${s.item || '驚喜'}`).join('\n');
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }).catch(err => {
+      console.error('複製失敗', err);
+    });
+  };
+
   // --- Views ---
   const LoginView = () => (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4 relative z-10">
@@ -346,6 +412,17 @@ export default function App() {
         <p className="mt-6 text-xs text-center text-gray-400">
           已有 {Object.keys(rsvpData).length} 人填寫過時間
         </p>
+
+        {/* 食物認領入口 */}
+        <div className="mt-6 pt-6 border-t border-gray-200">
+          <button
+            onClick={() => setView('food')}
+            className="w-full flex items-center justify-center gap-2 p-4 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-xl font-bold text-lg shadow-lg hover:from-orange-600 hover:to-red-600 transition-all border-2 border-black"
+          >
+            <ShoppingCart size={24} />
+            我要認領食物/東西
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -529,6 +606,97 @@ export default function App() {
     </div>
   );
 
+  const FoodSlotInput = ({ slotId }) => {
+    const slotData = foodData[`slot_${slotId}`] || { name: '', item: '' };
+    const [localName, setLocalName] = useState(slotData.name);
+    const [localItem, setLocalItem] = useState(slotData.item);
+    const nameRef = useRef(null);
+    const itemRef = useRef(null);
+
+    useEffect(() => {
+      setLocalName(slotData.name || '');
+      setLocalItem(slotData.item || '');
+    }, [slotData.name, slotData.item]);
+
+    const handleBlur = () => {
+      if (localName !== slotData.name || localItem !== slotData.item) {
+        saveFoodItem(slotId, localName, localItem);
+      }
+    };
+
+    return (
+      <div className="flex gap-2">
+        <div className="w-10 flex-shrink-0 flex items-center justify-center font-black text-lg border-[3px] border-black bg-[#ffea00] rounded-xl shadow-[2px_2px_0_0_rgba(0,0,0,1)]">
+          {slotId}
+        </div>
+        <div className="flex-1 flex flex-col sm:flex-row gap-2">
+          <input
+            ref={nameRef}
+            type="text"
+            value={localName}
+            onChange={e => setLocalName(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="稱呼"
+            className="w-full sm:w-1/3 border-[3px] border-black rounded-xl px-3 py-2 font-bold focus:outline-none focus:bg-orange-50 focus:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all placeholder:font-normal placeholder:text-neutral-400"
+          />
+          <input
+            ref={itemRef}
+            type="text"
+            value={localItem}
+            onChange={e => setLocalItem(e.target.value)}
+            onBlur={handleBlur}
+            placeholder="要帶什麼東西？"
+            className="w-full sm:w-2/3 border-[3px] border-black rounded-xl px-3 py-2 font-bold focus:outline-none focus:bg-orange-50 focus:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all placeholder:font-normal placeholder:text-neutral-400"
+          />
+        </div>
+      </div>
+    );
+  };
+
+  const FoodView = () => (
+    <div className="max-w-md mx-auto relative z-10">
+      {/* 返回按鈕 */}
+      <button
+        onClick={() => setView('login')}
+        className="mb-4 flex items-center gap-1.5 bg-white border-[3px] border-black rounded-xl px-3 py-2 font-black text-sm shadow-[3px_3px_0_0_rgba(0,0,0,1)] hover:shadow-[1px_1px_0_0_rgba(0,0,0,1)] hover:translate-x-0.5 hover:translate-y-0.5 transition-all"
+      >
+        <ArrowLeft size={16} strokeWidth={3} />
+        返回首頁
+      </button>
+
+      {/* 表單卡片 */}
+      <div className="bg-white border-4 border-black rounded-3xl pt-2 pb-6 px-4 sm:px-6 shadow-[8px_8px_0_0_rgba(0,0,0,1)]">
+        <div className="w-24 h-2 bg-[#ff8a00] mx-auto rounded-full mb-6 mt-2"></div>
+        <h2 className="text-2xl font-black text-center mb-2 tracking-wide text-black flex items-center justify-center gap-2">
+          <ShoppingCart size={28} />
+          認領清單
+        </h2>
+        <p className="text-center text-gray-500 text-sm mb-6">填完自動儲存，大家都看得到喔！</p>
+
+        <div className="space-y-4">
+          {Array.from({ length: 10 }, (_, i) => (
+            <FoodSlotInput key={i + 1} slotId={i + 1} />
+          ))}
+        </div>
+
+        {/* 複製按鈕 */}
+        <div className="mt-8 pt-6 border-t-[3px] border-black border-dashed flex justify-center">
+          <button
+            onClick={copyFoodList}
+            className={`flex items-center gap-2 px-6 py-3 border-[3px] border-black font-black text-lg rounded-xl transition-all transform active:translate-y-1 active:translate-x-1 active:shadow-none ${
+              copied
+                ? 'bg-green-400 shadow-[4px_4px_0_0_rgba(0,0,0,1)]'
+                : 'bg-[#ffea00] hover:bg-[#ffe100] shadow-[4px_4px_0_0_rgba(0,0,0,1)]'
+            }`}
+          >
+            {copied ? <Check size={24} strokeWidth={3} /> : <Copy size={24} strokeWidth={3} />}
+            {copied ? '已複製清單！' : '複製認領清單'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-amber-50 font-sans text-gray-800 overflow-x-hidden">
       <SpeedLines />
@@ -566,6 +734,7 @@ export default function App() {
             {view === 'login' && <LoginView />}
             {view === 'calendar' && <CalendarView />}
             {view === 'stats' && <StatsView />}
+            {view === 'food' && <FoodView />}
           </>
         )}
       </main>
