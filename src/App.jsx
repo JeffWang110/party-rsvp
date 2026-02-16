@@ -177,6 +177,14 @@ export default function App() {
   const [view, setView] = useState('login');
   const [foodData, setFoodData] = useState({});
   const [copied, setCopied] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({
+    name: '',
+    email: '',
+    message: '',
+    website: '',
+  });
+  const [feedbackState, setFeedbackState] = useState({ type: 'idle', message: '' });
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
   // Auth
   useEffect(() => {
@@ -377,6 +385,77 @@ export default function App() {
     }).catch(err => {
       console.error('複製失敗', err);
     });
+  };
+
+  const handleFeedbackChange = (event) => {
+    const { name, value } = event.target;
+    setFeedbackForm((prev) => ({ ...prev, [name]: value }));
+    if (feedbackState.type !== 'idle') {
+      setFeedbackState({ type: 'idle', message: '' });
+    }
+  };
+
+  const handleFeedbackSubmit = async (event) => {
+    event.preventDefault();
+    if (isSendingFeedback) return;
+
+    const name = feedbackForm.name.trim();
+    const email = feedbackForm.email.trim();
+    const message = feedbackForm.message.trim();
+
+    if (!name || !email || !message) {
+      setFeedbackState({ type: 'error', message: '請完整填寫姓名、Email 與回饋內容。' });
+      return;
+    }
+
+    if (name.length > 80) {
+      setFeedbackState({ type: 'error', message: '姓名不可超過 80 字。' });
+      return;
+    }
+
+    if (email.length > 120) {
+      setFeedbackState({ type: 'error', message: 'Email 不可超過 120 字。' });
+      return;
+    }
+
+    if (message.length > 2000) {
+      setFeedbackState({ type: 'error', message: '回饋內容不可超過 2000 字。' });
+      return;
+    }
+
+    setIsSendingFeedback(true);
+
+    try {
+      const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          message,
+          website: feedbackForm.website,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || '送出失敗，請稍後再試。');
+      }
+
+      setFeedbackState({ type: 'success', message: '收到你的回饋了，謝謝！' });
+      setFeedbackForm({
+        name: '',
+        email: '',
+        message: '',
+        website: '',
+      });
+    } catch (error) {
+      setFeedbackState({ type: 'error', message: error.message || '送出失敗，請稍後再試。' });
+    } finally {
+      setIsSendingFeedback(false);
+    }
   };
 
   // --- Views ---
@@ -738,6 +817,85 @@ export default function App() {
           </>
         )}
       </main>
+
+      {view === 'login' && !loading && (
+        <section className="max-w-2xl mx-auto px-4 pb-8 relative z-10">
+          <div className="bg-white rounded-2xl border-4 border-black p-5 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-xl font-black text-black flex items-center gap-2">
+              <MessageCircle size={20} />
+              給站長的意見回饋
+            </h2>
+            <p className="text-sm text-gray-600 mt-1 mb-4">
+              你的回饋會寄送到 jeff110@cht.com.tw
+            </p>
+            <form onSubmit={handleFeedbackSubmit} className="space-y-3">
+              <input
+                type="text"
+                name="website"
+                value={feedbackForm.website}
+                onChange={handleFeedbackChange}
+                tabIndex="-1"
+                autoComplete="off"
+                className="hidden"
+                aria-hidden="true"
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <input
+                  type="text"
+                  name="name"
+                  value={feedbackForm.name}
+                  onChange={handleFeedbackChange}
+                  placeholder="姓名"
+                  maxLength={80}
+                  required
+                  className="w-full border-[3px] border-black rounded-xl px-3 py-2 font-bold focus:outline-none focus:bg-orange-50"
+                />
+                <input
+                  type="email"
+                  name="email"
+                  value={feedbackForm.email}
+                  onChange={handleFeedbackChange}
+                  placeholder="Email"
+                  maxLength={120}
+                  required
+                  className="w-full border-[3px] border-black rounded-xl px-3 py-2 font-bold focus:outline-none focus:bg-orange-50"
+                />
+              </div>
+              <textarea
+                name="message"
+                value={feedbackForm.message}
+                onChange={handleFeedbackChange}
+                rows={4}
+                maxLength={2000}
+                required
+                placeholder="想反應的問題、建議、需求..."
+                className="w-full border-[3px] border-black rounded-xl px-3 py-2 font-bold focus:outline-none focus:bg-orange-50 resize-y"
+              />
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <p
+                  className={`text-sm ${
+                    feedbackState.type === 'error'
+                      ? 'text-red-600'
+                      : feedbackState.type === 'success'
+                        ? 'text-green-700'
+                        : 'text-gray-500'
+                  }`}
+                  aria-live="polite"
+                >
+                  {feedbackState.message || '我們會盡快查看你的訊息。'}
+                </p>
+                <button
+                  type="submit"
+                  disabled={isSendingFeedback}
+                  className="px-5 py-2.5 bg-[#ffea00] border-[3px] border-black rounded-xl font-black shadow-[4px_4px_0_0_rgba(0,0,0,1)] hover:bg-[#ffe100] active:translate-y-0.5 active:translate-x-0.5 active:shadow-[2px_2px_0_0_rgba(0,0,0,1)] transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+                >
+                  {isSendingFeedback ? '送出中...' : '送出回饋'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </section>
+      )}
 
       <footer className="text-center text-gray-400 text-xs py-8 relative z-10">
         115.2.1 ～ 115.3.31 時間確認表單 <br/>
